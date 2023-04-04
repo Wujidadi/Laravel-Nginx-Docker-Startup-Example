@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: ./config/docker
+      dockerfile: Dockerfile
+    image: ${COMPOSE_PROJECT_NAME}:${IMAGE_BUILD_LABEL}
+    container_name: ${CONTAINER_NAME_PREFIX}-App
+    hostname: ${CONTAINER_HOST_PREFIX}-app
+    volumes:
+      - ./src:${CONTAINER_WORKDIR_APP}
+      - ./config/nginx/nginx.conf:/etc/nginx/sites-available/default
+      - ./config/supervisor/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+    networks:
+      default:
+        ipv4_address: ${IPV4_APP}
+    ports:
+      - ${PORT_APP:-80}:80
+    working_dir: ${CONTAINER_WORKDIR_APP}
+    command: >
+      bash -c "cron start;
+      supervisord -c /etc/supervisor/conf.d/supervisord.conf;
+      nginx -g 'daemon off;'"
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+    name: ${NETWORK_NAME}
+    ipam:
+      config:
+        - subnet: ${NETWORK_SUBNET}

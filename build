@@ -1,0 +1,27 @@
+#!/bin/bash
+
+source .env
+
+# Same as in docker-compose.yml
+app_image_tag=$COMPOSE_PROJECT_NAME:$IMAGE_BUILD_LABEL
+
+# Create Zsh history files for volumes to mount
+if [ ! -f zsh/root.zsh_history ] ; then
+    touch zsh/root.zsh_history
+fi
+
+if [ ! -f zsh/user.zsh_history ] ; then
+    touch zsh/user.zsh_history
+fi
+
+# On Apple M2, docker-compose build fails with "DeadlineExceeded" and "i/o timeout", so we build the image manually
+if [[ "$(docker images -q $app_image_tag 2> /dev/null)" == "" ]]; then
+    docker build --no-cache --progress=plain --rm -t $app_image_tag config/docker 2>&1
+fi
+
+# Start containers
+if [ $# -gt 0 ] && [ $1 == '-f' ] ; then
+    docker-compose up -d --force-recreate
+else
+    docker-compose up -d
+fi
